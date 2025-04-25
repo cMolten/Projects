@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Rayfield Example Window",
+    Name = "",
     Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
     LoadingTitle = "Rayfield Interface Suite",
     LoadingSubtitle = "by Sirius",
@@ -36,6 +36,8 @@ local Window = Rayfield:CreateWindow({
 
 local Tab = Window:CreateTab("mm2", 4483362458) -- Title
 
+
+--dropdown
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -99,117 +101,198 @@ task.spawn(function()
 end)
 
 
--- Button örneği
+
+
+
+
+
+
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local espEnabled = false
+
+-- Her oyuncunun highlight'ını burada saklayacağız
+local playerHighlights = {}
+local gunDropHighlights = {}
+
+-- Highlight oluştur veya güncelle
+local function updateHighlight(player, color)
+    local character = player.Character
+    if not character then return end
+
+    local highlight = playerHighlights[player]
+
+    -- Highlight yoksa oluştur
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Parent = game.CoreGui
+        playerHighlights[player] = highlight
+    end
+
+    if highlight.FillColor ~= color then
+        highlight.FillColor = color
+    end
+
+    if highlight.Adornee ~= character then
+        highlight.Adornee = character
+    end
+end
+
+-- Knife kontrolü
+local function hasKnife(player)
+    local backpack = player:FindFirstChild("Backpack")
+    local character = player.Character
+    return (backpack and backpack:FindFirstChild("Knife")) or (character and character:FindFirstChild("Knife"))
+end
+
+-- Gun kontrolü
+local function hasGun(player)
+    local backpack = player:FindFirstChild("Backpack")
+    local character = player.Character
+    return (backpack and backpack:FindFirstChild("Gun")) or (character and character:FindFirstChild("Gun"))
+end
+
+-- ESP güncelleme fonksiyonu
+local function checkAllPlayers()
+    if not espEnabled then return end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local color
+
+            if hasKnife(player) then
+                color = Color3.fromRGB(255, 0, 0)
+            elseif hasGun(player) then
+                color = Color3.fromRGB(0, 0, 255)
+            else
+                color = Color3.fromRGB(0, 255, 0)
+            end
+
+            updateHighlight(player, color)
+        end
+    end
+end
+
+-- Oyuncular karakter değiştirince yeniden bağla
+local function setupPlayer(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        if espEnabled then
+            checkAllPlayers()
+        end
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        setupPlayer(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        setupPlayer(player)
+    end
+end)
+
+-- GunDrop ESP için Highlight (şerifin düşürdüğü silah)
+local function highlightGunDrop(part)
+    if part:IsA("Part") and part.Name == "GunDrop" and not gunDropHighlights[part] then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.FillColor = Color3.fromRGB(0, 0, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = part
+        highlight.Parent = part
+        gunDropHighlights[part] = highlight
+    end
+end
+
+local function removeAllGunDropHighlights()
+    for part, hl in pairs(gunDropHighlights) do
+        if hl and hl.Parent then
+            hl:Destroy()
+        end
+    end
+    gunDropHighlights = {}
+end
+
+local function checkAllGunDrops()
+    if not espEnabled then return end
+    for _, descendant in ipairs(workspace:GetDescendants()) do
+        highlightGunDrop(descendant)
+    end
+end
+
+workspace.DescendantAdded:Connect(function(descendant)
+    if espEnabled then
+        highlightGunDrop(descendant)
+    end
+end)
+
+-- Toggle ESP sistemi (Oyuncu + GunDrop senkron)
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(Value)
+        espEnabled = Value
+        if espEnabled then
+            checkAllPlayers()
+            checkAllGunDrops()
+        else
+            -- Oyuncu ESP'lerini temizle
+            for _, hl in pairs(playerHighlights) do
+                hl:Destroy()
+            end
+            playerHighlights = {}
+
+            -- GunDrop ESP'lerini temizle
+            removeAllGunDropHighlights()
+        end
+    end,
+})
+
+-- Sürekli güncelleme (anlık değişiklik için)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if espEnabled then
+            checkAllPlayers()
+            checkAllGunDrops()
+        end
+    end
+end)
+
+-- CFrame taşıma butonu (senin verdiğin)
 local Button = Tab:CreateButton({
    Name = "Button Example",
    Callback = function()
-      -- LocalPlayer'ın karakterini verilen CFrame'e taşı
       local targetCFrame = CFrame.new(
-          -88.1816788, 153.099915, 107.587769,  -- Pozisyon (X, Y, Z)
-          0.594115794, 6.93327493e-08, 0.804379523,  -- Rotation (X, Y, Z)
-          -4.84397269e-08, 1, -5.04164284e-08,  -- Rotation (X, Y, Z)
-          -0.804379523, -9.01072905e-09, 0.594115794   -- Rotation (X, Y, Z)
+          -88.1816788, 153.099915, 107.587769,
+          0.594115794, 6.93327493e-08, 0.804379523,
+          -4.84397269e-08, 1, -5.04164284e-08,
+          -0.804379523, -9.01072905e-09, 0.594115794
       )
       
-      -- Eğer LocalPlayer'ın karakteri varsa, taşı
       if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
           LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
       end
    end,
 })
 
--- ESP fonksiyonu
-local espEnabled = false -- ESP'nin aktif olup olmadığı
 
--- Highlight ESP fonksiyonu (Mavi Highlight için)
-local function createHighlightESP(player, color)
-    local character = player.Character
-    if not character then return end
 
-    -- Zaten highlight varsa tekrar ekleme
-    if character:FindFirstChild("ESP_Highlight") then return end
 
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.FillColor = color  -- Renk parametre olarak alır
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)  -- Beyaz outline
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.Adornee = character
-    highlight.Parent = character
-end
 
--- Knife'ı kontrol et (hem Backpack, hem Character'da)
-local function hasKnife(player)
-    -- Backpack'te Knife var mı?
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack and backpack:FindFirstChild("Knife") then
-        return true
-    end
 
-    -- Character'da Knife var mı? (Elinde olmalı)
-    local character = player.Character
-    if character and character:FindFirstChild("Knife") then
-        return true
-    end
-
-    return false
-end
-
--- Gun'ı kontrol et (hem Backpack, hem Character'da)
-local function hasGun(player)
-    -- Backpack'te Gun var mı?
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack and backpack:FindFirstChild("Gun") then
-        return true
-    end
-
-    -- Character'da Gun var mı? (Elinde olmalı)
-    local character = player.Character
-    if character and character:FindFirstChild("Gun") then
-        return true
-    end
-
-    return false
-end
-
--- Serverdaki tüm oyuncuları kontrol et
-local function checkAllPlayers()
-    if not espEnabled then return end  -- Eğer ESP kapalıysa, işlemi durdur
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if hasKnife(player) then
-            createHighlightESP(player, Color3.fromRGB(255, 0, 0))  -- Knife için kırmızı highlight
-        end
-        if hasGun(player) then
-            createHighlightESP(player, Color3.fromRGB(0, 0, 255))  -- Gun için mavi highlight
-        end
-    end
-end
-
--- Toggle fonksiyonu (Aç/Kapa)
-local Toggle = Tab:CreateToggle({
-    Name = "Toggle ESP",
-    CurrentValue = false,
-    Flag = "Toggle1",  -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-    Callback = function(Value)
-        espEnabled = Value  -- Eğer toggle açılırsa, ESP aktif edilir, kapanırsa devre dışı bırakılır
-        if espEnabled then
-            checkAllPlayers()  -- ESP aktif ise, tüm oyuncuları kontrol et
-        end
-    end,
-})
-
--- Toggle'ı her saniye güncelle
-task.spawn(function()
-    while true do
-        task.wait(1)  -- 1 saniye bekle
-        Toggle:Set(espEnabled)  -- Toggle'ı güncelle (açık/kapalı)
-        if espEnabled then
-            checkAllPlayers()  -- Eğer ESP aktifse, tüm oyuncuları kontrol et
-        end
-    end
-end)
 
 -- Anchor Toggle fonksiyonu
 local AnchorToggle = Tab:CreateToggle({
@@ -248,25 +331,14 @@ local AnchorToggle = Tab:CreateToggle({
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+--aimbot
 
 
 
 
 local aimbotActive = false
 local buttonClicked = false
+local rightClickActive = false  -- Sağ tıklama durumu
 
 local Players = game:GetService("Players")
 local Camera = workspace.CurrentCamera
@@ -347,21 +419,45 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             print("Aimbot kapatıldı!")
         end
     end
+
+    -- Sağ tık basıldığında aimbot aktif olmalı
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        rightClickActive = true  -- Sağ tık aktif
+    end
 end)
 
--- Kamera kitlenmesi (2 stud yanına kitlenmesi)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        rightClickActive = false  -- Sağ tık bırakıldığında kitlenme duracak
+    end
+end)
+
+-- Kamera kitlenmesi (2 stud sağa veya sola kaydırma)
 RunService.RenderStepped:Connect(function()
-    if aimbotActive then
+    if aimbotActive and rightClickActive then
         local target = GetClosestMurderer()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             local headPosition = target.Character.Head.Position
             local cameraPosition = Camera.CFrame.Position
-            local direction = (headPosition - cameraPosition).unit
 
-            -- Kamerayı sadece 2 stud sağa kaydıracak şekilde ayarla
-            local targetPosition = headPosition + Vector3.new(2, 0, 0)  -- **2 stud** sağa kaydırma
+            -- Hedefin pozisyonunu ve yönünü hesapla
+            local directionToTarget = (headPosition - cameraPosition).unit
+            local forwardDirection = Camera.CFrame.LookVector
+            local rightDirection = Camera.CFrame.RightVector
 
-            -- Kamera kitlenmesi
+            -- Hedefin sağında mı solunda mı olduğunu kontrol et
+            local dotProduct = directionToTarget:Dot(forwardDirection) -- Hedefin bakış yönünü kontrol et
+
+            local targetPosition
+            if dotProduct > 0 then
+                -- Hedef kameranın önündeyse, sağa kaydır
+                targetPosition = headPosition + rightDirection * 2  -- **2 stud** sağa kaydırma
+            else
+                -- Hedef kameranın arkasındaysa, sola kaydır
+                targetPosition = headPosition - rightDirection * 2  -- **2 stud** sola kaydırma
+            end
+
+            -- Kamerayı kitlenmesi
             Camera.CFrame = CFrame.new(cameraPosition, targetPosition)
         end
     end
@@ -370,8 +466,114 @@ end)
 
 
 
+--hide mode
+
+
+
+
+local Button = Tab:CreateButton({
+    Name = "Toggle Anchor Mode (Press X)",
+    Callback = function()
+        print("Anchor Mode script loaded! Press X to use.")
+
+        local UserInputService = game:GetService("UserInputService")
+        local RunService = game:GetService("RunService")
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
+
+        -- Karakter yüklendiği zaman bekle
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        local camera = workspace.CurrentCamera
+
+        local isAnchored = false
+        local originalCFrame
+        local originalCameraPosition
+
+        -- X tuşuna basıldığında sabitleme işlemi
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.X then
+                if not isAnchored then
+                    -- Karakter ve kamera konumunu kaydet
+                    originalCFrame = humanoidRootPart.CFrame
+                    originalCameraPosition = camera.CFrame.Position
+
+                    -- Karakteri 30 stud aşağıya yerleştir
+                    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, -30, 0)
+                    task.wait(0.1)
+
+                    -- Anchor'ı aktif et
+                    humanoidRootPart.Anchored = true
+
+                    -- Kamera yüksekliğini sabitle
+                    RunService:BindToRenderStep("KeepCameraHeight", Enum.RenderPriority.Camera.Value, function()
+                        local camCFrame = camera.CFrame
+                        camera.CFrame = CFrame.new(camCFrame.Position.X, originalCameraPosition.Y, camCFrame.Position.Z) * camCFrame.Rotation
+                    end)
+                else
+                    -- Anchor'ı kaldır ve karakteri geri taşı
+                    humanoidRootPart.Anchored = false
+                    humanoidRootPart.CFrame = originalCFrame
+
+                    -- Kamera kontrolünü eski haline döndür
+                    RunService:UnbindFromRenderStep("KeepCameraHeight")
+                end
+                -- Anchor'ı sadece client-side'da değiştiriyoruz
+                isAnchored = not isAnchored
+            end
+        end)
+    end,
+})
 
 
 
 
 
+
+
+
+local Button = Tab:CreateButton({
+   Name = "Button Example",
+   Callback = function()
+      -- The function that takes place when the button is pressed
+      print("Button pressed, now waiting for N key press to toggle CanCollide.")
+
+      local UserInputService = game:GetService("UserInputService")
+      local Players = game:GetService("Players")
+      local player = Players.LocalPlayer
+
+      -- Bekle karakter yüklensin
+      local character = player.Character or player.CharacterAdded:Wait()
+      local lowerTorso = character:WaitForChild("LowerTorso")
+      local upperTorso = character:WaitForChild("UpperTorso")
+      local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+      local canCollideDisabled = false
+
+      -- N tuşuna basıldığında CanCollide'ı kapat veya aç
+      UserInputService.InputBegan:Connect(function(input, gameProcessed)
+         if gameProcessed then return end
+         if input.KeyCode == Enum.KeyCode.N then
+            -- CanCollide durumunu tersine çevir
+            canCollideDisabled = not canCollideDisabled
+
+            if canCollideDisabled then
+               -- CanCollide'ı kapat
+               lowerTorso.CanCollide = false
+               upperTorso.CanCollide = false
+               humanoidRootPart.CanCollide = false
+
+               print("CanCollide properties have been disabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
+            else
+               -- CanCollide'ı aç
+               lowerTorso.CanCollide = true
+               upperTorso.CanCollide = true
+               humanoidRootPart.CanCollide = true
+
+               print("CanCollide properties have been enabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
+            end
+         end
+      end)
+   end,
+})
