@@ -470,7 +470,6 @@ end)
 
 
 
-
 local Button = Tab:CreateButton({
     Name = "Hide mode With X bind",
     Callback = function()
@@ -519,6 +518,7 @@ local Button = Tab:CreateButton({
                     -- Kamera kontrolünü eski haline döndür
                     RunService:UnbindFromRenderStep("KeepCameraHeight")
                 end
+
                 -- Anchor'ı sadece client-side'da değiştiriyoruz
                 isAnchored = not isAnchored
             end
@@ -543,12 +543,13 @@ local Button = Tab:CreateButton({
       local Players = game:GetService("Players")
       local player = Players.LocalPlayer
 
-      -- Bekle karakter yüklensin
+      -- Karakterin yüklendiğinden emin ol
       local character = player.Character or player.CharacterAdded:Wait()
       local lowerTorso = character:WaitForChild("LowerTorso")
       local upperTorso = character:WaitForChild("UpperTorso")
       local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+      -- Noclip'in sadece istemci tarafında aktif olmasını sağla
       local canCollideDisabled = false
 
       -- N tuşuna basıldığında CanCollide'ı kapat veya aç
@@ -558,6 +559,7 @@ local Button = Tab:CreateButton({
             -- CanCollide durumunu tersine çevir
             canCollideDisabled = not canCollideDisabled
 
+            -- Sadece istemci tarafında çalışacak şekilde CanCollide'ı değiştir
             if canCollideDisabled then
                -- CanCollide'ı kapat
                lowerTorso.CanCollide = false
