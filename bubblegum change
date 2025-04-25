@@ -1,0 +1,287 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+
+local Window = Rayfield:CreateWindow({
+    Name = "Rayfield Example Window",
+    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+    LoadingTitle = "Rayfield Interface Suite",
+    LoadingSubtitle = "by Sirius",
+    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+    ConfigurationSaving = {
+       Enabled = true,
+       FolderName = nil, -- Create a custom folder for your hub/game
+       FileName = "Big Hub"
+    },
+
+    Discord = {
+       Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+       Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+       RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+    },
+
+    KeySystem = false, -- Set this to true to use our key system
+    KeySettings = {
+       Title = "Untitled",
+       Subtitle = "Key System",
+       Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+       FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+       SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+       GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+       Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+    }
+ })
+
+
+ local Tab = Window:CreateTab("Islands", 4483362458) -- Title, Image
+
+
+ local traveling = false
+local cancelTravel = false
+
+local targetCFrame = CFrame.new(
+    -15.1907396, 15972.4463, 60.5495453,
+    -0.997577846, 0.00753571792, -0.0691490322,
+    -3.97183612e-07, 0.994113624, 0.108342215,
+    0.0695584342, 0.108079813, -0.991705775
+)
+
+local speed = 500
+
+local function moveTo(pos)
+    return task.spawn(function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local hrp = character:WaitForChild("HumanoidRootPart")
+
+        while (hrp.Position - pos).Magnitude > 5 do
+            if cancelTravel then break end
+            local dir = (pos - hrp.Position).Unit
+            hrp.Velocity = dir * speed
+            task.wait(0.05)
+        end
+
+        if not cancelTravel then
+            hrp.CFrame = CFrame.new(pos)
+            hrp.Velocity = Vector3.zero
+        end
+    end)
+end
+
+local Button = Tab:CreateButton({
+   Name = "Unlock All Islands",
+   Callback = function()
+      cancelTravel = false
+      traveling = true
+      
+      local player = game.Players.LocalPlayer
+      local character = player.Character or player.CharacterAdded:Wait()
+      local hrp = character:WaitForChild("HumanoidRootPart")
+
+      local targetPos = targetCFrame.Position
+      local aboveStart = hrp.Position + Vector3.new(0, 100, 0)
+      local aboveTarget = targetPos + Vector3.new(0, 100, 0)
+
+      -- Hareket Sırası:
+      moveTo(aboveStart)         -- 1. yukarı çık
+      task.wait(1)
+      moveTo(Vector3.new(aboveTarget.X, aboveStart.Y, aboveTarget.Z)) -- 2. yatay git
+      task.wait(1)
+      moveTo(aboveTarget)        -- 3. hedefin tam üstüne git
+      task.wait(1)
+      moveTo(targetPos)          -- 4. hedefe in
+      task.wait(0.5)
+
+      if not cancelTravel then
+         hrp.CFrame = targetCFrame -- yönle birlikte ayarla
+      end
+
+      traveling = false
+   end
+})
+
+
+
+local running = false
+local meshParts = {}
+local loopThread = nil
+local connections = {}
+
+local TweenService = game:GetService("TweenService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local upperTorso = character:WaitForChild("UpperTorso")
+local lowerTorso = character:WaitForChild("LowerTorso")
+local rendered = workspace:WaitForChild("Rendered")
+
+local maxDistance = 70
+local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- Her pozisyona gidebilsin diye her zaman true döndür
+local function isNewPosition(pos)
+	return true
+end
+
+local function checkNearbyMeshes()
+	local newMeshes = {}
+	for _, chunkerFolder in ipairs(rendered:GetChildren()) do
+		if chunkerFolder:IsA("Folder") and chunkerFolder.Name:lower():find("chunker") then
+			for _, obj in ipairs(chunkerFolder:GetDescendants()) do
+				if obj:IsA("BasePart") and obj.Name:lower():find("meshes") then
+					local distance = (obj.Position - hrp.Position).Magnitude
+					if distance <= maxDistance then
+						table.insert(newMeshes, obj.CFrame)
+					end
+				end
+			end
+		end
+	end
+	return newMeshes
+end
+
+local function handleMeshes()
+	while running do
+		local success, err = pcall(function()
+			meshParts = checkNearbyMeshes()
+
+			if #meshParts == 0 then
+				wait(0.1)
+				return
+			end
+
+			for _, meshCFrame in ipairs(meshParts) do
+				if not running then return end
+
+				local goal = { CFrame = meshCFrame }
+				local tween = TweenService:Create(hrp, tweenInfo, goal)
+
+				local completed = false
+				local connection = tween.Completed:Connect(function()
+					completed = true
+				end)
+
+				tween:Play()
+
+				for i = 1, 20 do
+					if not running then
+						tween:Cancel()
+						connection:Disconnect()
+						return
+					end
+					if completed then break end
+					wait(0.1)
+				end
+
+				connection:Disconnect()
+				wait(0.1)
+			end
+
+			wait(0.1)
+		end)
+
+		if not success then
+			warn("Hata oluştu:", err)
+			wait(1)
+		end
+	end
+end
+
+local function lockCanCollide(part)
+	part.CanCollide = false
+	local conn = part.Changed:Connect(function(prop)
+		if prop == "CanCollide" and part.CanCollide == true then
+			part.CanCollide = false
+		end
+	end)
+	table.insert(connections, conn)
+end
+
+local function unlockCanCollide(part)
+	part.CanCollide = true
+end
+
+local Toggle = Tab:CreateToggle({
+	Name = "Mesh Toplayıcı",
+	CurrentValue = false,
+	Flag = "MeshCollector",
+	Callback = function(Value)
+		running = Value
+		if running then
+			loopThread = task.spawn(handleMeshes)
+
+			lockCanCollide(hrp)
+			lockCanCollide(upperTorso)
+			lockCanCollide(lowerTorso)
+			print("Toplama başlatıldı + CanCollide kilitlendi.")
+		else
+			unlockCanCollide(hrp)
+			unlockCanCollide(upperTorso)
+			unlockCanCollide(lowerTorso)
+			for _, conn in ipairs(connections) do
+				conn:Disconnect()
+			end
+			connections = {}
+
+			if loopThread then
+				task.cancel(loopThread)
+				loopThread = nil
+			end
+
+			print("Toplama durduruldu + CanCollide serbest bırakıldı.")
+		end
+	end,
+})
+
+
+
+
+
+local Button = Tab:CreateButton({
+   Name = "Noclip with N bind",
+   Callback = function()
+      -- The function that takes place when the button is pressed
+      print("Button pressed, now waiting for N key press to toggle CanCollide.")
+
+      local UserInputService = game:GetService("UserInputService")
+      local Players = game:GetService("Players")
+      local player = Players.LocalPlayer
+
+      -- Bekle karakter yüklensin
+      local character = player.Character or player.CharacterAdded:Wait()
+      local lowerTorso = character:WaitForChild("LowerTorso")
+      local upperTorso = character:WaitForChild("UpperTorso")
+      local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+      local canCollideDisabled = false
+
+      -- N tuşuna basıldığında CanCollide'ı kapat veya aç
+      UserInputService.InputBegan:Connect(function(input, gameProcessed)
+         if gameProcessed then return end
+         if input.KeyCode == Enum.KeyCode.N then
+            -- CanCollide durumunu tersine çevir
+            canCollideDisabled = not canCollideDisabled
+
+            if canCollideDisabled then
+               -- CanCollide'ı kapat
+               lowerTorso.CanCollide = false
+               upperTorso.CanCollide = false
+               humanoidRootPart.CanCollide = false
+
+               print("CanCollide properties have been disabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
+            else
+               -- CanCollide'ı aç
+               lowerTorso.CanCollide = true
+               upperTorso.CanCollide = true
+               humanoidRootPart.CanCollide = true
+
+               print("CanCollide properties have been enabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
+            end
+         end
+      end)
+   end,
+})
+
