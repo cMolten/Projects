@@ -239,7 +239,7 @@ end)
 
 -- Toggle ESP sistemi (Oyuncu + GunDrop senkron)
 local Toggle = Tab:CreateToggle({
-    Name = "Toggle ESP",
+    Name = "All Players Esp",
     CurrentValue = false,
     Flag = "Toggle1",
     Callback = function(Value)
@@ -273,7 +273,7 @@ end)
 
 -- CFrame taşıma butonu (senin verdiğin)
 local Button = Tab:CreateButton({
-   Name = "Button Example",
+   Name = "Go lobby",
    Callback = function()
       local targetCFrame = CFrame.new(
           -88.1816788, 153.099915, 107.587769,
@@ -296,7 +296,7 @@ local Button = Tab:CreateButton({
 
 -- Anchor Toggle fonksiyonu
 local AnchorToggle = Tab:CreateToggle({
-    Name = "Anchor Toggle",
+    Name = "Tp players in front of you",
     CurrentValue = false,
     Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
     Callback = function(Value)
@@ -397,7 +397,7 @@ end
 
 -- Buton oluşturma
 local Button = Tab:CreateButton({
-   Name = "Enable Aimbot",
+   Name = "Enable Aimbot with V bind",
    Callback = function()
       -- Butona basıldığında V tuşunu aktif et
       buttonClicked = true
@@ -472,7 +472,7 @@ end)
 
 
 local Button = Tab:CreateButton({
-    Name = "Toggle Anchor Mode (Press X)",
+    Name = "Hide mode With X bind",
     Callback = function()
         print("Anchor Mode script loaded! Press X to use.")
 
@@ -534,7 +534,7 @@ local Button = Tab:CreateButton({
 
 
 local Button = Tab:CreateButton({
-   Name = "Button Example",
+   Name = "Noclip with N bind",
    Callback = function()
       -- The function that takes place when the button is pressed
       print("Button pressed, now waiting for N key press to toggle CanCollide.")
