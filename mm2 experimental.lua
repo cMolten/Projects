@@ -479,30 +479,50 @@ local Button = Tab:CreateButton({
         local RunService = game:GetService("RunService")
         local Players = game:GetService("Players")
         local player = Players.LocalPlayer
-
-        -- Karakter yüklendiği zaman bekle
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
         local camera = workspace.CurrentCamera
 
         local isAnchored = false
+        local humanoidRootPart
         local originalCFrame
         local originalCameraPosition
 
-        -- X tuşuna basıldığında sabitleme işlemi
+        -- Karakter kurulum fonksiyonu
+        local function setupCharacter(char)
+            humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+        end
+
+        -- İlk karakter kurulumu
+        setupCharacter(player.Character or player.CharacterAdded:Wait())
+
+        -- Ölünce yeni karakter geldiğinde tekrar ayarla
+        player.CharacterAdded:Connect(function(newCharacter)
+            -- Eğer bağlıysa eski kamerayı sıfırla
+            if isAnchored then
+                RunService:UnbindFromRenderStep("KeepCameraHeight")
+                isAnchored = false
+            end
+            setupCharacter(newCharacter)
+        end)
+
+        -- X tuşuna basıldığında anchor işlemleri
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
             if input.KeyCode == Enum.KeyCode.X then
+                if not humanoidRootPart then
+                    warn("HumanoidRootPart bulunamadı!")
+                    return
+                end
+
                 if not isAnchored then
-                    -- Karakter ve kamera konumunu kaydet
+                    -- Konumları kaydet
                     originalCFrame = humanoidRootPart.CFrame
                     originalCameraPosition = camera.CFrame.Position
 
-                    -- Karakteri 30 stud aşağıya yerleştir
+                    -- Karakteri aşağı çek
                     humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, -30, 0)
                     task.wait(0.1)
 
-                    -- Anchor'ı aktif et
+                    -- Anchor yap
                     humanoidRootPart.Anchored = true
 
                     -- Kamera yüksekliğini sabitle
@@ -511,15 +531,14 @@ local Button = Tab:CreateButton({
                         camera.CFrame = CFrame.new(camCFrame.Position.X, originalCameraPosition.Y, camCFrame.Position.Z) * camCFrame.Rotation
                     end)
                 else
-                    -- Anchor'ı kaldır ve karakteri geri taşı
+                    -- Anchor kaldır
                     humanoidRootPart.Anchored = false
                     humanoidRootPart.CFrame = originalCFrame
 
-                    -- Kamera kontrolünü eski haline döndür
+                    -- Kamera kontrolünü kaldır
                     RunService:UnbindFromRenderStep("KeepCameraHeight")
                 end
 
-                -- Anchor'ı sadece client-side'da değiştiriyoruz
                 isAnchored = not isAnchored
             end
         end)
@@ -533,49 +552,83 @@ local Button = Tab:CreateButton({
 
 
 
+
+
 local Button = Tab:CreateButton({
-   Name = "Noclip with N bind",
-   Callback = function()
-      -- The function that takes place when the button is pressed
-      print("Button pressed, now waiting for N key press to toggle CanCollide.")
+    Name = "Noclip with N bind",
+    Callback = function()
+        print("Noclip script loaded! Press N to toggle.")
 
-      local UserInputService = game:GetService("UserInputService")
-      local Players = game:GetService("Players")
-      local player = Players.LocalPlayer
+        local UserInputService = game:GetService("UserInputService")
+        local RunService = game:GetService("RunService")
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
 
-      -- Karakterin yüklendiğinden emin ol
-      local character = player.Character or player.CharacterAdded:Wait()
-      local lowerTorso = character:WaitForChild("LowerTorso")
-      local upperTorso = character:WaitForChild("UpperTorso")
-      local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        local canCollideDisabled = false
+        local character
+        local lowerTorso
+        local upperTorso
+        local humanoidRootPart
 
-      -- Noclip'in sadece istemci tarafında aktif olmasını sağla
-      local canCollideDisabled = false
+        -- RenderStep bağlantısı için
+        local renderStepConnection
 
-      -- N tuşuna basıldığında CanCollide'ı kapat veya aç
-      UserInputService.InputBegan:Connect(function(input, gameProcessed)
-         if gameProcessed then return end
-         if input.KeyCode == Enum.KeyCode.N then
-            -- CanCollide durumunu tersine çevir
-            canCollideDisabled = not canCollideDisabled
+        local function setupCharacter(char)
+            character = char
+            lowerTorso = character:WaitForChild("LowerTorso")
+            upperTorso = character:WaitForChild("UpperTorso")
+            humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
-            -- Sadece istemci tarafında çalışacak şekilde CanCollide'ı değiştir
+            -- Noclip aktifse karakter değişince yine uygula
             if canCollideDisabled then
-               -- CanCollide'ı kapat
-               lowerTorso.CanCollide = false
-               upperTorso.CanCollide = false
-               humanoidRootPart.CanCollide = false
-
-               print("CanCollide properties have been disabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
-            else
-               -- CanCollide'ı aç
-               lowerTorso.CanCollide = true
-               upperTorso.CanCollide = true
-               humanoidRootPart.CanCollide = true
-
-               print("CanCollide properties have been enabled for LowerTorso, UpperTorso, and HumanoidRootPart.")
+                lowerTorso.CanCollide = false
+                upperTorso.CanCollide = false
+                humanoidRootPart.CanCollide = false
             end
-         end
-      end)
-   end,
+        end
+
+        setupCharacter(player.Character or player.CharacterAdded:Wait())
+
+        player.CharacterAdded:Connect(function(newCharacter)
+            setupCharacter(newCharacter)
+        end)
+
+        -- N tuşuna basınca Noclip toggle
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.N then
+                if not (lowerTorso and upperTorso and humanoidRootPart) then
+                    warn("Body parts not found!")
+                    return
+                end
+
+                canCollideDisabled = not canCollideDisabled
+
+                if canCollideDisabled then
+                    print("Noclip ON")
+
+                    -- Sürekli her frame CanCollide = false yap
+                    renderStepConnection = RunService.RenderStepped:Connect(function()
+                        if lowerTorso then lowerTorso.CanCollide = false end
+                        if upperTorso then upperTorso.CanCollide = false end
+                        if humanoidRootPart then humanoidRootPart.CanCollide = false end
+                    end)
+                else
+                    print("Noclip OFF")
+
+                    -- RenderStep durdur
+                    if renderStepConnection then
+                        renderStepConnection:Disconnect()
+                        renderStepConnection = nil
+                    end
+
+                    -- Normal CanCollide açık yap
+                    lowerTorso.CanCollide = true
+                    upperTorso.CanCollide = true
+                    humanoidRootPart.CanCollide = true
+                end
+            end
+        end)
+    end,
 })
+
