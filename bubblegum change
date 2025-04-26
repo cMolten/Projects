@@ -285,3 +285,112 @@ local Button = Tab:CreateButton({
    end,
 })
 
+
+
+
+
+
+
+
+
+
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local originalCameraType = Camera.CameraType
+local ToggleConnection
+
+local cameraRotation = Vector2.new(0, 0) -- (X = Yukarı-aşağı, Y = Sağa-sola)
+local cameraSpeed = 189 -- Kameranın uçma hızı
+local mouseSensitivity = 0.2 -- Mouse hassasiyeti
+
+local keysPressed = {}
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    keysPressed[input.KeyCode] = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    keysPressed[input.KeyCode] = false
+end)
+
+local function enableFreecam()
+    humanoidRootPart.Anchored = true
+    Camera.CameraType = Enum.CameraType.Scriptable
+    Camera.CFrame = humanoidRootPart.CFrame
+
+    -- Mouse ekran ortasına kilitleniyor
+    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+
+    ToggleConnection = RunService.RenderStepped:Connect(function(deltaTime)
+        -- Mouse hareketleriyle kamerayı döndürme
+        local delta = UserInputService:GetMouseDelta()
+        cameraRotation = cameraRotation + Vector2.new(-delta.Y, -delta.X) * mouseSensitivity
+
+        local rotationCFrame = CFrame.Angles(0, math.rad(cameraRotation.Y), 0) * CFrame.Angles(math.rad(cameraRotation.X), 0, 0)
+        local camPos = Camera.CFrame.Position
+
+        -- Hareket yönleri
+        local moveDir = Vector3.new(0, 0, 0)
+
+        if keysPressed[Enum.KeyCode.W] then
+            moveDir = moveDir + Vector3.new(0, 0, -1)
+        end
+        if keysPressed[Enum.KeyCode.S] then
+            moveDir = moveDir + Vector3.new(0, 0, 1)
+        end
+        if keysPressed[Enum.KeyCode.A] then
+            moveDir = moveDir + Vector3.new(-1, 0, 0)
+        end
+        if keysPressed[Enum.KeyCode.D] then
+            moveDir = moveDir + Vector3.new(1, 0, 0)
+        end
+        if keysPressed[Enum.KeyCode.Space] then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if keysPressed[Enum.KeyCode.LeftControl] or keysPressed[Enum.KeyCode.RightControl] then
+            moveDir = moveDir + Vector3.new(0, -1, 0)
+        end
+
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit
+            camPos = camPos + (rotationCFrame:VectorToWorldSpace(moveDir) * cameraSpeed * deltaTime)
+        end
+
+        Camera.CFrame = CFrame.new(camPos) * rotationCFrame
+    end)
+end
+
+local function disableFreecam()
+    humanoidRootPart.Anchored = false
+    Camera.CameraType = originalCameraType
+
+    if ToggleConnection then
+        ToggleConnection:Disconnect()
+        ToggleConnection = nil
+    end
+
+    -- Mouse'u serbest bırakıyoruz
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Freecam + Anchor",
+   CurrentValue = false,
+   Flag = "FreecamToggle",
+   Callback = function(Value)
+      if Value then
+         enableFreecam()
+      else
+         disableFreecam()
+      end
+   end,
+})
