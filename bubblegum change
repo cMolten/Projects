@@ -404,6 +404,62 @@ local Toggle = Tab:CreateToggle({
 
 
 
+
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local toggled = false
+
+local Toggle = Tab:CreateToggle({
+    Name = "Anti Afk",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(Value)
+        toggled = Value
+        
+        if toggled then
+            task.spawn(function()
+                while toggled do
+                    local originalPosition = humanoidRootPart.Position
+                    
+                    -- Sağ ya da sola rastgele karar verelim
+                    local direction = math.random(0,1) == 0 and -1 or 1
+                    
+                    -- Gideceği pozisyonu ayarla
+                    local targetPosition = originalPosition + Vector3.new(2 * direction, 0, 0)
+                    
+                    -- Oraya yürü
+                    humanoid:MoveTo(targetPosition)
+                    humanoid.MoveToFinished:Wait() -- Bitmesini bekle
+                    
+                    task.wait(0.5) -- Yarım saniye bekle
+                    
+                    -- Eski pozisyona geri yürü
+                    humanoid:MoveTo(originalPosition)
+                    humanoid.MoveToFinished:Wait()
+                    
+                    task.wait(60) -- 1 dakika bekle
+                end
+            end)
+        end
+    end,
+})
+
+
+
+
+
+
+
+
+
+
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -412,7 +468,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local Button = Tab:CreateButton({
-   Name = "Travel to Golden Chest ",
+   Name = "Travel to Golden Chest",
    Callback = function()
       -- Butonu geçici olarak devre dışı bırak (işlem yaparken)
       Button.Enabled = false
@@ -432,7 +488,7 @@ local Button = Tab:CreateButton({
 
       -- Travel için Tween ayarla
       local distance = (humanoidRootPart.Position - output.Position).Magnitude
-      local speed = 500 -- Buradan hız ayarlarsın (stud/saniye)
+      local speed = 600 -- Buradan hız ayarlarsın (stud/saniye)
 
       local travelTime = distance / speed
 
@@ -454,3 +510,42 @@ local Button = Tab:CreateButton({
 
 -- Başlangıçta buton tıklanabilir
 Button.Enabled = true
+
+
+
+
+
+
+
+
+
+
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Parent = screenGui
+textLabel.Size = UDim2.new(0, 400, 0, 50)
+textLabel.Position = UDim2.new(0.5, -200, 0, 20)  -- Üst kısmına 20 px'lik bir boşluk ekledik
+textLabel.Text = "İndex Gum Coded By Molten Shoutout to Ege"
+textLabel.TextSize = 40
+textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+textLabel.BackgroundTransparency = 1
+
+local function changeRGBColor()
+    local startTime = tick()
+    local duration = 10 -- 10 saniye
+    while tick() - startTime < duration do
+        local timeElapsed = tick() - startTime
+        local red = math.abs(math.sin(timeElapsed)) * 255
+        local green = math.abs(math.sin(timeElapsed + 2)) * 255
+        local blue = math.abs(math.sin(timeElapsed + 4)) * 255
+        textLabel.TextColor3 = Color3.fromRGB(red, green, blue)
+        wait(0.05)
+    end
+    textLabel:Remove() -- 10 saniye sonra yazıyı kaldır
+end
+
+changeRGBColor()
+
