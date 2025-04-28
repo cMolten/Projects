@@ -2,13 +2,13 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 
 local Window = Rayfield:CreateWindow({
-    Name = "Moltens bubblegum experimental script",
+    Name = "İndex Gum",
     Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-    LoadingTitle = "Rayfield Interface Suite",
-    LoadingSubtitle = "by Sirius",
-    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
-
-    DisableRayfieldPrompts = false,
+    LoadingTitle = "Use Peak Quality",
+    LoadingSubtitle = "by Molten",
+    Theme = "Bloom", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+   
+   DisableRayfieldPrompts = false,
     DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
 
     ConfigurationSaving = {
@@ -205,7 +205,7 @@ local function unlockCanCollide(part)
 end
 
 local Toggle = Tab:CreateToggle({
-	Name = "Mesh Toplayıcı",
+	Name = "Auto farm",
 	CurrentValue = false,
 	Flag = "MeshCollector",
 	Callback = function(Value)
@@ -383,7 +383,7 @@ local function disableFreecam()
 end
 
 local Toggle = Tab:CreateToggle({
-   Name = "travel while hatching eggs",
+   Name = "Travel while hatching eggs",
    CurrentValue = false,
    Flag = "FreecamToggle",
    Callback = function(Value)
@@ -394,3 +394,63 @@ local Toggle = Tab:CreateToggle({
       end
    end,
 })
+
+
+
+
+
+
+
+
+
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local Button = Tab:CreateButton({
+   Name = "Travel to Golden Chest ",
+   Callback = function()
+      -- Butonu geçici olarak devre dışı bırak (işlem yaparken)
+      Button.Enabled = false
+
+      -- Golden Chest içindeki Output'u bul
+      local rendered = workspace:FindFirstChild("Rendered")
+      if not rendered then warn("Rendered bulunamadı!") return end
+
+      local rifts = rendered:FindFirstChild("Rifts")
+      if not rifts then warn("Rifts bulunamadı!") return end
+
+      local goldenChest = rifts:FindFirstChild("golden-chest")
+      if not goldenChest then warn("golden-chest bulunamadı!") return end
+
+      local output = goldenChest:FindFirstChild("Output")
+      if not output then warn("Output bulunamadı!") return end
+
+      -- Travel için Tween ayarla
+      local distance = (humanoidRootPart.Position - output.Position).Magnitude
+      local speed = 500 -- Buradan hız ayarlarsın (stud/saniye)
+
+      local travelTime = distance / speed
+
+      local goal = {}
+      goal.CFrame = output.CFrame + Vector3.new(0, 5, 0) -- Biraz yukarı koyuyoruz
+
+      local tweenInfo = TweenInfo.new(travelTime, Enum.EasingStyle.Linear)
+
+      local tween = TweenService:Create(humanoidRootPart, tweenInfo, goal)
+      tween:Play()
+
+      -- Yavaş bir şekilde butonun tekrar tıklanabilir olmasını sağla
+      tween.Completed:Connect(function()
+         -- Travel bittiğinde butonu tekrar aktif yap
+         Button.Enabled = true
+      end)
+   end,
+})
+
+-- Başlangıçta buton tıklanabilir
+Button.Enabled = true
